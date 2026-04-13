@@ -9,6 +9,8 @@
 #SBATCH --partition=h200,h100,a100
 #SBATCH --gres=gpu:1
 #SBATCH --mem=70G
+#SBATCH -o /dev/null
+#SBATCH -e /dev/null
 
 
 

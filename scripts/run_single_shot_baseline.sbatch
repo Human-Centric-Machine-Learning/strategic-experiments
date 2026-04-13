@@ -9,6 +9,8 @@
 #SBATCH --partition=h200,h100,a100
 #SBATCH --gres=gpu:1
 #SBATCH --mem=40G
+#SBATCH -o /dev/null
+#SBATCH -e /dev/null
 
 # Resolve project root (works whether submitted from project root or scripts/)
 if [ -d "${SLURM_SUBMIT_DIR}/venv" ]; then
