@@ -3,7 +3,12 @@
 
 ## Paper abstract
 
-We study the design of subsidies for sequential randomized controlled trials (RCTs) where a self-interested agent (e.g., a pharmaceutical firm) decides how many subjects to enroll in each stage, and a principal (e.g., a regulator) wants to maximize social utility. The agent chooses a sequential experimentation policy to maximize its own expected payoff, which depends on the private reward from approval, trial costs, and a cost-reimbursement subsidy offered by the principal. We formulate the principal's problem as a Stackelberg game over a subsidized Markov Decision Process (MDP) and develop efficient algorithms to (i) solve the agent's MDP via backward induction, (ii) find the principal's optimal subsidy via divide-and-conquer over the piecewise-linear agent value function, and (iii) evaluate policies under the true treatment efficacy through Monte Carlo simulation.
+Regulatory approval of products in high-stakes domains such as drug development requires statistical evidence of safety and efficacy through large-scale randomized controlled trials.
+However, the high financial cost of these trials may deter developers who lack absolute certainty in their product's efficacy, ultimately stifling the development of "moonshot" products that could offer high social utility.
+To address this inefficiency, in this paper, we introduce a statistical protocol for experimentation where the product developer (the agent) conducts a randomized controlled trial sequentially and the regulator (the principal) partially subsidizes its cost.
+By modeling the protocol using a belief Markov decision process, we show that the agent's optimal strategy can be found efficiently using dynamic programming.
+Further, we show that the social utility is a piecewise linear and convex function over the subsidy level the principal selects, and thus the socially optimal subsidy can also be found efficiently using divide-and-conquer.
+Simulation experiments using publicly available data on drug approvals demonstrate that our statistical protocol can be used to increase the social utility compared to non-sequential alternatives. % without subsidies.
 
 
 ## Dependencies
