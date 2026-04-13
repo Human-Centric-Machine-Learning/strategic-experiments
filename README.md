@@ -267,7 +267,7 @@ This first runs Algorithm 1 for each `rho_S` in `rho_S_range`, then evaluates ea
 
 ### Running on a SLURM cluster
 
-Each script in `scripts/` is a ready-to-use SLURM batch file. For example:
+Each script in `scripts/` is a ready-to-use SLURM batch file. They auto-detect the project root, so they can be submitted from any directory:
 
 ```bash
 # Single optimal subsidy run
@@ -359,7 +359,7 @@ All results are saved as PyTorch `.pt` files (loaded via `torch.load(path, weigh
 
 ## Contact & attribution
 
-In case you have questions about the code, you identify potential bugs, or you would like us to include additional functionalities, feel free to open an issue or contact [Ander Artola Velasco](mailto:avelasco@mpi-sws.org).
+In case you have questions about the code, you identify potential bugs, or you would like us to include additional functionalities, feel free to open an issue.
 
 If you use parts of the code in this repository for your own research, please consider citing:
 ```
