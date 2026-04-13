@@ -8,7 +8,7 @@ However, the high financial cost of these trials may deter developers who lack a
 To address this inefficiency, in this paper, we introduce a statistical protocol for experimentation where the product developer (the agent) conducts a randomized controlled trial sequentially and the regulator (the principal) partially subsidizes its cost.
 By modeling the protocol using a belief Markov decision process, we show that the agent's optimal strategy can be found efficiently using dynamic programming.
 Further, we show that the social utility is a piecewise linear and convex function over the subsidy level the principal selects, and thus the socially optimal subsidy can also be found efficiently using divide-and-conquer.
-Simulation experiments using publicly available data on drug approvals demonstrate that our statistical protocol can be used to increase the social utility compared to non-sequential alternatives. % without subsidies.
+Simulation experiments using publicly available data on drug approvals demonstrate that our statistical protocol can be used to increase the social utility compared to non-sequential alternatives. 
 
 
 ## Dependencies
