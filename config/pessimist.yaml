@@ -1,0 +1,24 @@
+rho_S: 2000 #base value of 2000
+rho_S_range: [240, 500, 1000, 2000, 3000, 4000, 5000, 6000, 7000 ,8000, 9000, 10000] # range of values for rho_S to test sensitivity. Note that estiamte of Value of statistical life are around $500k. So the upper end of 10000M corresponds to 20k lives saved, which is likely an upper bound for the number of lives saved by an antibiotic drug. The lower end of 240M corresponds to 480 lives saved, which is likely a lower bound for the number of lives saved by an antibiotic drug.
+rho_A: 240 # base value of 240, estimate from Rahman et al., 2020 for average net present value of antibiotic drugs
+
+c0: 48.9 # base value of 48.9, estimate from Moore et al., 2018
+c1: 0.066 #base value of 0.066, estimate from Stergiopoulos et al., 2017 for direct per-patient cost
+T: 3 #base value of 3
+n_max: 200 #base value of 200
+
+
+epsilon: 0.3
+theta_star:  0.65        # true efficacy parameter θ*
+theta_star_range: [0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.85, 0.9] # range of values for theta_star to test sensitivity
+
+theta_b: 0.5
+kappa: 0.05
+alpha_0: 1.0
+beta_0: 1.5
+epsilon_max: 0.9
+
+
+device: cuda
+tol: 1e-6
+save_dir: ../outputs/pessimist/mdp_output

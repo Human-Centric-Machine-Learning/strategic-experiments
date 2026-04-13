@@ -6,24 +6,14 @@
 # Exit on errors
 set -euo pipefail
 
-echo "Starting the submission of test.py to SLURM..."
+# Resolve project root relative to this script's location
+WORK_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
-# ----------------------------
-# Determine directories
-# ----------------------------
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"   # scripts/
-BASE_DIR="$(dirname "$SCRIPT_DIR")"                          # project root
-SRC_DIR="${BASE_DIR}/src"
-VENV_PATH="${BASE_DIR}/env"
-LOG_DIR="${BASE_DIR}/outputs/slurm_logs"
 
-echo "Base directory: $BASE_DIR"
-echo "Source directory: $SRC_DIR"
-echo "Virtual env: $VENV_PATH"
-echo "Log directory: $LOG_DIR"
+
+
 
 # Create log directory if it doesn't exist
-mkdir -p "${LOG_DIR}"
 
 # ----------------------------
 # SLURM job submission
@@ -42,17 +32,22 @@ cat <<EOT > "$SBATCH_SCRIPT"
 #SBATCH --partition=h200,h100,a100
 #SBATCH --gres=gpu:1
 #SBATCH --mem=40G
-#SBATCH -o ${LOG_DIR}/MDP_%j.out
-#SBATCH -e ${LOG_DIR}/MDP_%j.err
+#SBATCH -o ${WORK_DIR}/outputs/slurm_logs/MDP_%j.out
+#SBATCH -e ${WORK_DIR}/outputs/slurm_logs/MDP_%j.err
+
+
 
 # Load virtual environment
-source "${VENV_PATH}/bin/activate"
+source ${WORK_DIR}/venv/bin/activate
 
 # Go to source directory
-cd "${SRC_DIR}"
+cd ${WORK_DIR}/src
 
 # Run Python script
-python test.py
+python MDP_solver.py
+
+
+
 
 # Deactivate virtualenv
 deactivate

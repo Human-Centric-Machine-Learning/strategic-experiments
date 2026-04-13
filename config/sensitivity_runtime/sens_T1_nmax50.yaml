@@ -1,0 +1,26 @@
+# Auto-generated config for runtime sensitivity: T=1, n_max=50
+# Uses fiducial rho_S and theta_star only.
+
+rho_S: 2000
+rho_S_range: [2000]
+rho_A: 240
+
+c0: 48.9
+c1: 0.066
+
+T: 1
+n_max: 50
+
+epsilon: 0.3
+theta_star: 0.65
+theta_star_range: [0.65]
+
+theta_b: 0.5
+kappa: 0.05
+alpha_0: 1.0
+beta_0: 1.0
+epsilon_max: 0.9
+
+device: cuda
+tol: 1e-6
+save_dir: ../outputs/sensitivity_runtime/T1_nmax50/mdp_output

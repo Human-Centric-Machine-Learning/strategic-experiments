@@ -5,7 +5,7 @@ data/processed
 
 env/
 
-
+outputs/
 
 models/*
 !models/.gitkeep
@@ -33,7 +33,9 @@ final_runs/
 figures/*
 logs/
 #######################
-
+.claude
+.claude/
+.claude_cache/
 
 
 *.py[codz]
