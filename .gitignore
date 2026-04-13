@@ -30,7 +30,7 @@ README_sup.md
 datasets/
 runs/
 final_runs/
-figures/*
+# figures/*
 logs/
 #######################
 .claude
