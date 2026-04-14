@@ -56,7 +56,8 @@ def _solve_single_shot(base_solver_cfg: dict, epsilon: float, save_dir: str):
     return policy, V0, A, P
 
 
-def run(config_path: str, n_episodes: int = 200_000, seed: int = 42, verbose: bool = True):
+def run(config_path: str, n_episodes: int = 200_000, seed: int = 42, verbose: bool = True,
+        theta_fid: float = 0.65):
     with open(config_path) as f:
         config = yaml.safe_load(f)
 
@@ -65,6 +66,7 @@ def run(config_path: str, n_episodes: int = 200_000, seed: int = 42, verbose: bo
     theta_star_range = [float(v) for v in config["theta_star_range"]]
     save_dir         = config.get("save_dir", "./single_shot_output")
     fid_path         = config["fiducial_sensitivity_path"]
+    theta_fid        = float(config.get("theta_fid", theta_fid))
 
     os.makedirs(save_dir, exist_ok=True)
     mdp_scratch = os.path.join(save_dir, "mdp_solves")
@@ -105,6 +107,23 @@ def run(config_path: str, n_episodes: int = 200_000, seed: int = 42, verbose: bo
 
     eps_fid_used = np.array([rho_to_eps[r] for r in rho_S_range])
 
+    # Per-episode samples at theta_fid for downstream bootstrap CIs.
+    # Case (a): policy is rho_S-independent, so one 1-D array suffices.
+    # Case (c): policy changes per rho_S, so (n_rho, n_ep).
+    j_fid = next((jj for jj, th in enumerate(theta_star_range)
+                  if abs(th - theta_fid) < 1e-9), None)
+    if j_fid is None and verbose:
+        print(f"  [info] theta_fid={theta_fid} not in theta_star_range; "
+              f"skipping per-episode sample collection.")
+    samples_ss0_approved   = (np.zeros(n_episodes, dtype=np.int8)
+                              if j_fid is not None else None)
+    samples_ss0_cost       = (np.zeros(n_episodes, dtype=np.float32)
+                              if j_fid is not None else None)
+    samples_ssopt_approved = (np.zeros((n_rho, n_episodes), dtype=np.int8)
+                              if j_fid is not None else None)
+    samples_ssopt_cost     = (np.zeros((n_rho, n_episodes), dtype=np.float32)
+                              if j_fid is not None else None)
+
     # Base config (without epsilon) used by Algorithm 1 for the single-shot setting
     ss_alg1_base = {k: base_solver_cfg[k] for k in SOLVER_KEYS if k != "epsilon"}
     epsilon_max  = float(config.get("epsilon_max", 1.0))
@@ -122,12 +141,16 @@ def run(config_path: str, n_episodes: int = 200_000, seed: int = 42, verbose: bo
 
     for j, theta_star in enumerate(theta_star_range):
         mc = _mc_true(pol0, theta_star, mc_params,
-                      n_episodes=n_episodes, seed=seed + j)
+                      n_episodes=n_episodes, seed=seed + j,
+                      return_samples=(j == j_fid))
         p, a = mc["p_approval"], mc["a_true"]
         for i, rho_S in enumerate(rho_S_range):
             P_ss0[i, j]  = p
             A_ss0[i, j]  = a
             us_ss0[i, j] = rho_S * p - 0.0 * a
+        if j == j_fid:
+            samples_ss0_approved[:] = mc["samples"]["approved"]
+            samples_ss0_cost[:]     = mc["samples"]["cost"]
         if verbose:
             print(f"  theta*={theta_star:.2f}  P={p:.4f}  A={a:.4f}")
 
@@ -188,17 +211,24 @@ def run(config_path: str, n_episodes: int = 200_000, seed: int = 42, verbose: bo
 
         for j, theta_star in enumerate(theta_star_range):
             ckey = (round(eps_star_ss, 12), theta_star)
-            if ckey not in mc_cache:
-                mc_cache[ckey] = _mc_true(
+            want_samples = (j == j_fid)
+            cached = mc_cache.get(ckey)
+            if cached is None or (want_samples and "samples" not in cached):
+                cached = _mc_true(
                     pol_ss, theta_star, mc_params,
                     n_episodes=n_episodes,
                     seed=seed + 20_000 + i * n_th + j,
+                    return_samples=want_samples,
                 )
-            mc = mc_cache[ckey]
+                mc_cache[ckey] = cached
+            mc = cached
             p, a = mc["p_approval"], mc["a_true"]
             P_ssopt[i, j]  = p
             A_ssopt[i, j]  = a
             us_ssopt[i, j] = rho_S * p - eps_star_ss * a
+            if want_samples:
+                samples_ssopt_approved[i] = mc["samples"]["approved"]
+                samples_ssopt_cost[i]     = mc["samples"]["cost"]
 
     out = {
         "rho_S_range":       rho_S_range,
@@ -221,8 +251,15 @@ def run(config_path: str, n_episodes: int = 200_000, seed: int = 42, verbose: bo
             **{k: config[k] for k in SOLVER_KEYS},
             "n_episodes":               n_episodes,
             "fiducial_sensitivity_path": fid_path,
+            "theta_fid":                theta_fid,
         },
     }
+    if j_fid is not None:
+        out["theta_fid"]              = theta_fid
+        out["samples_ss0_approved"]   = samples_ss0_approved    # (n_ep,) int8
+        out["samples_ss0_cost"]       = samples_ss0_cost        # (n_ep,) float32
+        out["samples_ssopt_approved"] = samples_ssopt_approved  # (n_rho, n_ep) int8
+        out["samples_ssopt_cost"]     = samples_ssopt_cost      # (n_rho, n_ep) float32
     out_path = os.path.join(save_dir, "single_shot_baseline.pt")
     torch.save(out, out_path)
     print(f"\nTotal elapsed: {time.time()-t0:.1f}s")
@@ -236,7 +273,10 @@ if __name__ == "__main__":
     parser.add_argument("--n_episodes", type=int, default=200_000)
     parser.add_argument("--seed",       type=int, default=42)
     parser.add_argument("--no_verbose", dest="verbose", action="store_false")
+    parser.add_argument("--theta_fid",  type=float, default=0.65,
+                        help="theta* at which per-episode samples are stored (default: 0.65).")
     parser.set_defaults(verbose=True)
     args = parser.parse_args()
 
-    run(args.config, n_episodes=args.n_episodes, seed=args.seed, verbose=args.verbose)
+    run(args.config, n_episodes=args.n_episodes, seed=args.seed, verbose=args.verbose,
+        theta_fid=args.theta_fid)

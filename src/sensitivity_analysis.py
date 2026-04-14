@@ -38,7 +38,8 @@ from optimal_subsidy import find_optimal_subsidy
 # Monte Carlo true-dynamics evaluation
 # ---------------------------------------------------------------------------
 
-def _mc_true(policy, theta_star, params, n_episodes=200_000, seed=42):
+def _mc_true(policy, theta_star, params, n_episodes=200_000, seed=42,
+             return_samples=False):
     """
     Evaluate policy under true Binomial(n, theta_star) dynamics.
 
@@ -46,6 +47,10 @@ def _mc_true(policy, theta_star, params, n_episodes=200_000, seed=42):
       p_approval : P(approved | theta_star, policy)
       a_true     : E[cost | approved, theta_star, policy]  -- NaN if never approved
       p_optout   : P(agent chooses n=0 at some stage before approval | theta_star, policy)
+      samples    : (only if return_samples) dict with per-episode arrays
+                   'approved' (int8, n_episodes): 1 if episode ended in approval else 0
+                   'cost'     (float32, n_episodes): episode cost if approved else 0
+                   Satisfies mean(approved)=p_approval and mean(cost)=a_true.
     """
     rng           = np.random.default_rng(seed)
     T             = int(params['T'])
@@ -66,7 +71,11 @@ def _mc_true(policy, theta_star, params, n_episodes=200_000, seed=42):
     n_optout          = 0
     sum_cost_approved = 0.0
 
-    for _ in range(n_episodes):
+    if return_samples:
+        approved_arr = np.zeros(n_episodes, dtype=np.int8)
+        cost_arr     = np.zeros(n_episodes, dtype=np.float32)
+
+    for ep in range(n_episodes):
         N, X    = 0, 0
         C       = 0.0
         outcome = 'horizon'  # 'approved' | 'optout' | 'horizon' (exhausted T)
@@ -87,10 +96,13 @@ def _mc_true(policy, theta_star, params, n_episodes=200_000, seed=42):
         if outcome == 'approved':
             n_approved        += 1
             sum_cost_approved += C
+            if return_samples:
+                approved_arr[ep] = 1
+                cost_arr[ep]     = C
         elif outcome == 'optout':
             n_optout += 1
 
-    return {
+    out = {
         'p_approval': n_approved / n_episodes,
         # E[C_τ · 1{approved}] — unconditional, consistent with MDP solver's A definition.
         # (MDP sets A=cost at approval, A=0 at opt-out, so A[0,0,0] = P * E[C|approved].)
@@ -99,13 +111,17 @@ def _mc_true(policy, theta_star, params, n_episodes=200_000, seed=42):
         'e_cost_cond_approval': sum_cost_approved / n_approved if n_approved > 0 else float('nan'),
         'p_optout':   n_optout / n_episodes,
     }
+    if return_samples:
+        out['samples'] = {'approved': approved_arr, 'cost': cost_arr}
+    return out
 
 
 # ---------------------------------------------------------------------------
 # Main sensitivity sweep
 # ---------------------------------------------------------------------------
 
-def run_sensitivity(config_path, n_episodes=200_000, seed=42, verbose=True):
+def run_sensitivity(config_path, n_episodes=200_000, seed=42, verbose=True,
+                    theta_fid=0.65):
     with open(config_path) as f:
         config = yaml.safe_load(f)
 
@@ -118,6 +134,7 @@ def run_sensitivity(config_path, n_episodes=200_000, seed=42, verbose=True):
     epsilon_max      = float(config.get('epsilon_max', 1.0))
     tol              = float(config.get('tol', 1e-6))
     save_dir         = config.get('save_dir', './mdp_output')
+    theta_fid        = float(config.get('theta_fid', theta_fid))
 
     # Subdirectory for per-epsilon MDP solve files written by find_optimal_subsidy
     mdp_scratch_dir = os.path.join(save_dir, 'sensitivity_mdp_solves')
@@ -176,6 +193,17 @@ def run_sensitivity(config_path, n_episodes=200_000, seed=42, verbose=True):
     p_optout_mat  = np.full((n_rho, n_th), np.nan)
     us_true_mat   = np.full((n_rho, n_th), np.nan)
 
+    # Per-episode samples at theta_fid for downstream bootstrap CIs.
+    j_fid = next((jj for jj, th in enumerate(theta_star_range)
+                  if abs(th - theta_fid) < 1e-9), None)
+    if j_fid is None and verbose:
+        print(f"  [info] theta_fid={theta_fid} not in theta_star_range; "
+              f"skipping per-episode sample collection.")
+    samples_fid_approved = (np.zeros((n_rho, n_episodes), dtype=np.int8)
+                            if j_fid is not None else None)
+    samples_fid_cost     = (np.zeros((n_rho, n_episodes), dtype=np.float32)
+                            if j_fid is not None else None)
+
     mc_params = {k: config[k]
                  for k in ['T', 'alpha_0', 'beta_0', 'kappa', 'theta_b', 'c0', 'c1']}
 
@@ -197,6 +225,7 @@ def run_sensitivity(config_path, n_episodes=200_000, seed=42, verbose=True):
                 policy, theta_star, mc_params,
                 n_episodes=n_episodes,
                 seed=seed + i * n_th + j,
+                return_samples=(j == j_fid),
             )
 
             P_true_mat[i, j]   = mc['p_approval']
@@ -204,6 +233,10 @@ def run_sensitivity(config_path, n_episodes=200_000, seed=42, verbose=True):
             p_optout_mat[i, j] = mc['p_optout']
             # a_true = E[C · 1{approved}] is already 0 when P_true=0, so no nan risk.
             us_true_mat[i, j]  = rho_S * mc['p_approval'] - eps_star * mc['a_true']
+
+            if j == j_fid:
+                samples_fid_approved[i] = mc['samples']['approved']
+                samples_fid_cost[i]     = mc['samples']['cost']
 
             if verbose:
                 print(f"P_true={mc['p_approval']:.4f}  "
@@ -231,8 +264,13 @@ def run_sensitivity(config_path, n_episodes=200_000, seed=42, verbose=True):
             'epsilon_max': epsilon_max,
             'tol':         tol,
             'n_episodes':  n_episodes,
+            'theta_fid':   theta_fid,
         },
     }
+    if j_fid is not None:
+        out['theta_fid']             = theta_fid
+        out['samples_fid_approved']  = samples_fid_approved
+        out['samples_fid_cost']      = samples_fid_cost
 
     out_path = os.path.join(save_dir, 'sensitivity_results.pt')
     torch.save(out, out_path)
@@ -258,6 +296,8 @@ if __name__ == '__main__':
                         help='Base random seed (default: 42).')
     parser.add_argument('--no_verbose', dest='verbose', action='store_false',
                         help='Suppress per-solve output.')
+    parser.add_argument('--theta_fid',  type=float, default=0.65,
+                        help='theta* at which per-episode samples are stored (default: 0.65).')
     parser.set_defaults(verbose=True)
     args = parser.parse_args()
 
@@ -266,4 +306,5 @@ if __name__ == '__main__':
         n_episodes=args.n_episodes,
         seed=args.seed,
         verbose=args.verbose,
+        theta_fid=args.theta_fid,
     )
