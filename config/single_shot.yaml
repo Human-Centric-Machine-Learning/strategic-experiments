@@ -1,6 +1,6 @@
-## Single-shot baseline: T=0 (one action), n_max=500.
-## Used by single_shot_baseline.py to isolate the effect of sequential testing
-## and subsidies, relative to the fiducial run.
+# Single-shot baseline: T = 0 (one action), n_max = 800.
+# Used by single_shot_baseline.py to isolate the effect of sequential testing
+# and subsidies, relative to the fiducial run.
 
 rho_S: 2000
 rho_S_range: [240, 500, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000]
@@ -9,7 +9,7 @@ rho_A: 240
 c0: 48.9
 c1: 0.066
 T: 0
-n_max: 500
+n_max: 800
 
 epsilon: 0.0
 theta_star: 0.65

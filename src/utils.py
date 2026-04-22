@@ -1,90 +1,74 @@
-#This file contains utility functions
+"""Plotting utilities: LaTeX-compatible matplotlib styling and figure sizing."""
 
-import matplotlib.pyplot as plt
 import matplotlib
-import numpy as np
-
-
+import matplotlib.pyplot as plt
 
 
 def get_fig_dim(width, fraction=1, aspect_ratio=None):
-    """Set figure dimensions to avoid scaling in LaTeX.
+    """Return figure dimensions in inches that avoid LaTeX scaling artifacts.
 
     Parameters
     ----------
-    width: float
-            Document textwidth or columnwidth in pts
-    fraction: float, optional
-            Fraction of the width which you wish the figure to occupy
-    aspect_ratio: float, optional
-            Aspect ratio of the figure
+    width : float
+        Document textwidth or columnwidth in points.
+    fraction : float, optional
+        Fraction of ``width`` that the figure should occupy.
+    aspect_ratio : float, optional
+        Width-to-height ratio. Defaults to the golden ratio.
 
     Returns
     -------
-    fig_dim: tuple
-            Dimensions of figure in inches
+    tuple
+        ``(width_in_inches, height_in_inches)``.
     """
-    # Width of figure (in pts)
-    fig_width_pt = width * fraction
-
-    # Convert from pt to inches
+    fig_width_pt  = width * fraction
     inches_per_pt = 1 / 72.27
 
     if aspect_ratio is None:
-        # If not specified, set the aspect ratio equal to the Golden ratio (https://en.wikipedia.org/wiki/Golden_ratio)
-        aspect_ratio = (1 + 5**.5) / 2
+        aspect_ratio = (1 + 5 ** 0.5) / 2  # golden ratio
 
-    # Figure width in inches
-    fig_width_in = fig_width_pt * inches_per_pt
-    # Figure height in inches
+    fig_width_in  = fig_width_pt * inches_per_pt
     fig_height_in = fig_width_in / aspect_ratio
-
-    fig_dim = (fig_width_in, fig_height_in)
-
-    return fig_dim
+    return (fig_width_in, fig_height_in)
 
 
-def latexify(font_serif='Computer Modern', mathtext_font='cm', font_size=10, small_font_size=None, usetex=True):
-    """Set up matplotlib's RC params for LaTeX plotting.
-    Call this before plotting a figure.
+def latexify(font_serif='Computer Modern', mathtext_font='cm', font_size=10,
+             small_font_size=None, usetex=True):
+    """Configure matplotlib's RC params for LaTeX-compatible plotting.
+
+    Call this before creating a figure.
 
     Parameters
     ----------
-    font_serif: string, optional
-		Set the desired font family
-    mathtext_font: float, optional
-    	Set the desired math font family
-    font_size: int, optional
-    	Set the large font size
-    small_font_size: int, optional
-    	Set the small font size
-    usetex: boolean, optional
-        Use tex for strings
+    font_serif : str, optional
+        Serif font family.
+    mathtext_font : str, optional
+        Math-text font set.
+    font_size : int, optional
+        Base font size.
+    small_font_size : int, optional
+        Size for legends / tick labels. Defaults to ``font_size``.
+    usetex : bool, optional
+        If True, render text with LaTeX.
     """
-
     if small_font_size is None:
         small_font_size = font_size
 
     params = {
-        'backend': 'ps',
-        'text.latex.preamble': '\\usepackage{gensymb} \\usepackage{bm}',
-            
-        'axes.labelsize': font_size,
-        'axes.titlesize': font_size,
-        'font.size': font_size,
-        
-        # Optionally set a smaller font size for legends and tick labels
-        'legend.fontsize': small_font_size,
+        'backend':              'ps',
+        'text.latex.preamble':  '\\usepackage{gensymb} \\usepackage{bm}',
+        'axes.labelsize':       font_size,
+        'axes.titlesize':       font_size,
+        'font.size':            font_size,
+        'legend.fontsize':      small_font_size,
         'legend.title_fontsize': small_font_size,
-        'xtick.labelsize': small_font_size,
-        'ytick.labelsize': small_font_size,
-        
-        'text.usetex': usetex,    
-        'font.family' : 'serif',
-        'font.serif' : font_serif,
-        'mathtext.fontset' : mathtext_font
+        'xtick.labelsize':      small_font_size,
+        'ytick.labelsize':      small_font_size,
+        'text.usetex':          usetex,
+        'font.family':          'serif',
+        'font.serif':           font_serif,
+        'mathtext.fontset':     mathtext_font,
     }
 
     matplotlib.rcParams.update(params)
     plt.rcParams.update(params)
-

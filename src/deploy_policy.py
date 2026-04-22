@@ -1,9 +1,9 @@
-import os
-import torch
-import numpy as np
-import yaml
 import argparse
 import time
+
+import numpy as np
+import torch
+import yaml
 
 
 class PolicyEvaluator:
@@ -68,12 +68,12 @@ class PolicyEvaluator:
 
     # ------------------------------------------------------------------
     def evaluate(self, track_beliefs=True):
-        """
-        Run Monte Carlo evaluation of the policy under theta_star.
+        """Run Monte Carlo evaluation of the policy under theta_star.
 
-        If track_beliefs=True, also returns belief trajectories:
-        belief_paths: list of length n_episodes
-            each entry is [(alpha_0,beta_0), (alpha_1,beta_1), ...,]
+        If ``track_beliefs=True``, the returned dictionary additionally contains
+        ``belief_paths``: a list of per-episode belief trajectories, each entry
+        of the form ``[(alpha_0, beta_0), (alpha_1, beta_1), ...]``. The list is
+        capped at the first 20000 episodes to bound memory usage.
         """
         rng = np.random.default_rng(self.seed)
 
@@ -116,8 +116,8 @@ class PolicyEvaluator:
                     approved = True
                     break
 
-            # store trajectory
-            if track_beliefs and len(belief_paths) < 20000:  # limit to first 1000 for memory
+            # Cap the number of stored trajectories to bound memory usage.
+            if track_beliefs and len(belief_paths) < 20000:
                 belief_paths.append(path)
 
             # --- accumulate statistics ---
@@ -142,7 +142,7 @@ class PolicyEvaluator:
             'agent_utility':         agent_utility,
             'n_episodes':            n,
             'n_approved':            n_approved,
-            'belief_paths':          belief_paths  # <-- new
+            'belief_paths':          belief_paths,
         }
 
 

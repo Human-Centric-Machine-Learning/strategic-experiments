@@ -40,8 +40,7 @@ echo "Python version: $(python --version)"
 cd "${WORK_DIR}/src"
 
 # Run Python script
-python -u MDP_solver.py --config ../config/orphan.yaml
+python -u MDP_solver.py --config ../config/fiducial.yaml
 
-#python test.py 
 # Deactivate virtual environment
 deactivate

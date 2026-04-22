@@ -42,6 +42,5 @@ cd "${WORK_DIR}/src"
 # Run Python script
 python -u optimal_subsidy.py --config ../config/pessimist.yaml
 
-#python test.py 
 # Deactivate virtual environment
 deactivate
